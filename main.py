@@ -6,6 +6,9 @@ from flask_nav.elements import Navbar, View
 import boto3
 import csv
 import logging
+import requests
+import os
+import zipfile
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -29,6 +32,11 @@ def target_navbar():
 nav.init_app(app)
 
 
+@app.route("/", methods=['GET', 'POST'])
+def index():
+    return render_template('search.htm')
+
+
 @app.route("/top", methods=['GET', 'POST'])
 def top():
     return render_template('search.htm')
@@ -41,10 +49,29 @@ def init():
         table_name = 'zipcode'
         table = dynamo.Table(table_name)
 
+        # 郵便番号一覧を取得
+        zipcode_url = 'https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip'
+        zipcode_zip = os.path.basename(zipcode_url)
+        url_object = requests.get(zipcode_url)
+        # ZIPファイル取得
+        with open(zipcode_zip, 'wb') as file:
+            file.write(url_object.content)
+        # ZIPファイル解凍
+        with zipfile.ZipFile(zipcode_zip) as target_zipfile:
+            target_zipfile.extractall()
+
+        # csvヘッダー定義
+        header_list = ['group_code', 'zipcode5', 'zipcode7',
+                       'ward_kana', 'city_kana', 'town_kana',
+                       'ward', 'city', 'town',
+                       'flg_1', 'flg_2', 'flg_3', 'flg_4', 'flg_5', 'flg_6',
+                       ]
+
         with table.batch_writer() as batch:
-            with open("./KEN_ALL.CSV", encoding='shift_jis', newline='') as csvfile:
-                reader = csv.DictReader(csvfile)
+            with open('./KEN_ALL.CSV', encoding='shift_jis', newline='') as csvfile:
+                reader = csv.DictReader(csvfile, fieldnames=header_list)
                 for row in reader:
+                    # print(f'row={row}')
                     batch.put_item(
                         Item={
                             # hash key (ホットキー)
