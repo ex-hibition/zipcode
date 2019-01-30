@@ -1,0 +1,17 @@
+{% extends "bootstrap/base.html" %}
+{% block title %}search{% endblock %}
+{% block navbar %}
+{{nav.target_navbar.render()}}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form action="{{url_for('search')}}" method=post class=search>
+        <div class="form-group">
+            <label>key</label>
+            <input type="text" class="form-control" placeholder="zipcode" name="key">
+        </div>
+        <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+</div>
+{% endblock %}
